@@ -1,0 +1,14 @@
+C:\Users\dovyd\source\repos\disasm\obj\Debug\net8.0\disasm.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\dovyd\source\repos\disasm\obj\Debug\net8.0\disasm.AssemblyInfoInputs.cache
+C:\Users\dovyd\source\repos\disasm\obj\Debug\net8.0\disasm.AssemblyInfo.cs
+C:\Users\dovyd\source\repos\disasm\obj\Debug\net8.0\disasm.csproj.CoreCompileInputs.cache
+C:\Users\dovyd\source\repos\disasm\bin\Debug\net8.0\disasm.exe
+C:\Users\dovyd\source\repos\disasm\bin\Debug\net8.0\disasm.deps.json
+C:\Users\dovyd\source\repos\disasm\bin\Debug\net8.0\disasm.runtimeconfig.json
+C:\Users\dovyd\source\repos\disasm\bin\Debug\net8.0\disasm.dll
+C:\Users\dovyd\source\repos\disasm\bin\Debug\net8.0\disasm.pdb
+C:\Users\dovyd\source\repos\disasm\obj\Debug\net8.0\disasm.dll
+C:\Users\dovyd\source\repos\disasm\obj\Debug\net8.0\refint\disasm.dll
+C:\Users\dovyd\source\repos\disasm\obj\Debug\net8.0\disasm.pdb
+C:\Users\dovyd\source\repos\disasm\obj\Debug\net8.0\disasm.genruntimeconfig.cache
+C:\Users\dovyd\source\repos\disasm\obj\Debug\net8.0\ref\disasm.dll

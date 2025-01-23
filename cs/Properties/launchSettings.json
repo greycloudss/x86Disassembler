@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "disasm": {
+      "commandName": "Project",
+      "commandLineArgs": "FC_ASM.exe",
+      "workingDirectory": "E:\\VU\\komparchas\\TASM\\tasm"
+    }
+  }
+}
