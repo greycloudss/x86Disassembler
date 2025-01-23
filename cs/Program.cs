@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography.X509Certificates;
 
 namespace disasmmmm {
 
@@ -92,7 +93,27 @@ namespace disasmmmm {
             {0xFA, "CLI" },
             {0xFB, "STI" },
             {0xFC, "CLD" },
-            {0xFD, "STD" }
+            {0xFD, "STD" },
+
+            { 0x70, "JO" },
+            { 0x71, "JNO" },
+            { 0x72, "JB / JC/ JNAE" },
+            { 0x73, "JAE / JNB/ JNC" },
+            { 0x74, "JZ / JE" },
+            { 0x75, "JNZ / JNE" },
+            { 0x76, "JBE / JNA" },
+            { 0x77, "JA / JNBE" },
+            { 0x78, "JS" },
+            { 0x79, "JNS" },
+            { 0x7A, "JP / JPE" },
+            { 0x7B, "JNP / JPO" },
+            { 0x7C, "JL / JNGE" },
+            { 0x7D, "JGE / JNL" },
+            { 0x7E, "JLE / JNG" },
+            { 0x7F, "JG / JNLE" },
+            { 0xEB, "JMP (short)" },
+            { 0xE9, "JMP (near)" },
+            { 0xEA, "JMP (far)" }
         };
 
         static Dictionary<byte, string> GetModTable(int val) {
@@ -106,15 +127,46 @@ namespace disasmmmm {
         }
 
         static int getMod(int val) {
-            return (val >> 6) & 0b11; // Extract bits 6 and 7
+            return (val >> 6) & 0b11;
         }
 
         static int getReg(int val) {
-            return (val >> 3) & 0b111; // Extract bits 3, 4, 5
+            return (val >> 3) & 0b111;
         }
 
         static int getRM(int val) {
-            return val & 0b111; // Extract bits 0, 1, 2
+            return val & 0b111;
+        }
+
+        static int CalculateTargetAddress(List<int> binary, int i, int cur) {
+            if (i >= binary.Count - 1) return cur;
+
+            byte opcode = (byte)binary[i];
+            int offsetSize = GetOffsetSize(opcode);
+            if (offsetSize == 0) return cur;
+
+            int offset = 0;
+
+            for (int j = 0; j < offsetSize; j++)
+                offset |= (binary[i + 1 + j] << (j * 8));
+            
+
+            if (offsetSize == 1) offset = (sbyte)offset;
+            else if (offsetSize == 2) offset = (short)offset;
+
+            return cur + offset + offsetSize + 1;
+        }
+
+
+        static int GetOffsetSize(byte opcode, bool isFarJump = false, bool isProtectedMode = false) {
+            if ((opcode >= 0x70 && opcode <= 0x7F) || opcode == 0xEB) {
+                return 1;
+            } else if (opcode == 0xE9 || opcode == 0xE8) {
+                return isProtectedMode ? 4 : 2;
+            } else if (opcode == 0xEA || isFarJump) {
+                return 8;
+            }
+            return 0;
         }
 
         static void matchCodes() {
@@ -122,7 +174,7 @@ namespace disasmmmm {
                 byte opcode = (byte)binary[i];
                 if (opcode == 0x00) {
                     ++i;
-                    continue; // Skip this iteration if opcode is 0x00
+                    continue;
                 }
 
                 if (!instants.ContainsKey(opcode) && opcodes.ContainsKey(opcode)) {
@@ -143,29 +195,23 @@ namespace disasmmmm {
                         string secondArg = "";
 
                         if (mod == 0x11) {
-                            // Register-to-register MOV
                             secondArg = mod11.ContainsKey((byte)rm) ? mod11[(byte)rm] : $"UNKNOWN (R/M: {rm})";
                         } else if (mod == 0x00 && rm == 0x06) {
-                            // Direct memory address
                             if (i + 2 >= binary.Count) {
                                 Console.WriteLine("Missing 16-bit displacement for memory address");
                                 break;
                             }
 
-                            // Fetch the 16-bit displacement
                             int disp16 = binary[++i] | (binary[++i] << 8);
 
-                            // Resolve the REG field to the appropriate register
-                            if (mod11.ContainsKey((byte)(0xC0 + reg))) { // Correct key for mod11 lookup
+                            if (mod11.ContainsKey((byte)(0xC0 + reg))) {
                                 firstArg = mod11[(byte)(0xC0 + reg)];
                             } else {
                                 firstArg = $"UNKNOWN (REG: {reg})";
                             }
 
-                            // Format the memory address as the second argument
                             secondArg = $"[0x{disp16:X4}]";
                         } else {
-                            // Other addressing modes
                             var modTable = GetModTable(mod);
                             if (modTable.ContainsKey((byte)rm)) {
                                 secondArg = modTable[(byte)rm];
@@ -173,7 +219,6 @@ namespace disasmmmm {
                                 secondArg = $"UNKNOWN (R/M: {rm})";
                             }
 
-                            // Handle displacements
                             if (mod == 0x01) {
                                 if (i + 1 >= binary.Count) {
                                     Console.WriteLine("Missing 8-bit displacement");
@@ -191,7 +236,7 @@ namespace disasmmmm {
                             }
                         }
 
-                        // Handle immediate MOV instructions
+
                         if (opcode >= 0xB0 && opcode <= 0xBF) {
                             if (i + 1 >= binary.Count) {
                                 Console.WriteLine("Missing immediate value");
@@ -217,18 +262,18 @@ namespace disasmmmm {
                         }
                     }
                 } else {
-                    if (instants.ContainsKey(opcode) && instants.TryGetValue(opcode, out string value)) {
-                        Console.WriteLine($"CS:{i}   {value}");
+                    
+                    if (instants.TryGetValue(opcode, out string value)) {
+                        if (instants.ContainsKey(opcode) && (opcode >= 0x70 && opcode <= 0x7F || opcode == 0xEB || opcode == 0xE9 || opcode == 0xEA)) {
+                            int targetAddress = CalculateTargetAddress(binary, i, i);
+                            Console.WriteLine($"CS:{i}   {value} 0x{targetAddress:X4}");
+                        } else {
+                            Console.WriteLine($"CS:{i}   {value}");
+                        }
                     }
                 }
             }
         }
-
-
-
-
-
-
 
         static void ReadBinary() {
             using (FileStream fopen = new FileStream(progName, FileMode.Open, FileAccess.Read)) {
