@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\dovyd\\source\\repos\\disasm\\disasm.csproj": {}
+    "C:\\Users\\dovyd\\Source\\Repos\\x86Disassembler\\cs\\disasm.csproj": {}
   },
   "projects": {
-    "C:\\Users\\dovyd\\source\\repos\\disasm\\disasm.csproj": {
+    "C:\\Users\\dovyd\\Source\\Repos\\x86Disassembler\\cs\\disasm.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\dovyd\\source\\repos\\disasm\\disasm.csproj",
+        "projectUniqueName": "C:\\Users\\dovyd\\Source\\Repos\\x86Disassembler\\cs\\disasm.csproj",
         "projectName": "disasm",
-        "projectPath": "C:\\Users\\dovyd\\source\\repos\\disasm\\disasm.csproj",
+        "projectPath": "C:\\Users\\dovyd\\Source\\Repos\\x86Disassembler\\cs\\disasm.csproj",
         "packagesPath": "C:\\Users\\dovyd\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\dovyd\\source\\repos\\disasm\\obj\\",
+        "outputPath": "C:\\Users\\dovyd\\Source\\Repos\\x86Disassembler\\cs\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
-          "E:\\stuff\\vs\\comps\\NuGetPackages"
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
           "C:\\Users\\dovyd\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -43,7 +43,8 @@
           "enableAudit": "true",
           "auditLevel": "low",
           "auditMode": "direct"
-        }
+        },
+        "SdkAnalysisLevel": "9.0.100"
       },
       "frameworks": {
         "net8.0": {
@@ -64,7 +65,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.400/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.102/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

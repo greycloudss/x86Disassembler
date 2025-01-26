@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("disasm")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+71a2c43e5798d1a665a5eb14e6a0d1b1385b133d")]
 [assembly: System.Reflection.AssemblyProductAttribute("disasm")]
 [assembly: System.Reflection.AssemblyTitleAttribute("disasm")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

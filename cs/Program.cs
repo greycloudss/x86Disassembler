@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection.Emit;
 using System.Security.Cryptography.X509Certificates;
 
 namespace disasmmmm {
@@ -169,6 +170,126 @@ namespace disasmmmm {
             return 0;
         }
 
+        static bool isInterrupt(int val, int intNum, int i) {
+            if (val == 0xCD) {
+                Console.WriteLine($"CS:{i}   INT 0x{binary[intNum + 1]:X2}");
+                return true;
+            }
+            return false;
+        }
+
+        static bool isMov(byte opcode, int i, string operation)
+        {
+            int modrm = binary[++i];
+            int mod = getMod(modrm);
+            int reg = getReg(modrm);
+            int rm = getRM(modrm);
+
+
+            string firstArg = mod11.ContainsKey((byte)(0xC0 + reg)) ? mod11[(byte)(0xC0 + reg)] : $"UNKNOWN (REG: {reg})";
+            string secondArg = "";
+
+
+            if (isInterrupt(opcode, binary[i + 1], i))
+                i++;
+
+
+
+            if (mod == 0x11)
+            {
+                secondArg = mod11.ContainsKey((byte)rm) ? mod11[(byte)rm] : $"UNKNOWN (R/M: {rm})";
+            }
+            else if (mod == 0x00 && rm == 0x06)
+            {
+                if (i + 2 >= binary.Count)
+                {
+                    Console.WriteLine("Missing 16-bit displacement for memory address");
+                    return false;
+                }
+
+                int disp16 = binary[++i] | (binary[++i] << 8);
+
+                if (mod11.ContainsKey((byte)(0xC0 + reg)))
+                {
+                    firstArg = mod11[(byte)(0xC0 + reg)];
+                }
+                else
+                {
+                    firstArg = $"UNKNOWN (REG: {reg})";
+                }
+
+                secondArg = $"[0x{disp16:X4}]";
+            }
+            else
+            {
+                var modTable = GetModTable(mod);
+                if (modTable.ContainsKey((byte)rm))
+                {
+                    secondArg = modTable[(byte)rm];
+                }
+                else
+                {
+                    secondArg = $"UNKNOWN (R/M: {rm})";
+                }
+
+                if (mod == 0x01)
+                {
+                    if (i + 1 >= binary.Count)
+                    {
+                        Console.WriteLine("Missing 8-bit displacement");
+                        return false; 
+                    }
+                    int disp8 = binary[++i];
+                    secondArg += $" + 0x{disp8:X2}";
+                }
+                else if (mod == 0x10)
+                {
+                    if (i + 2 >= binary.Count)
+                    {
+                        Console.WriteLine("Missing 16-bit displacement");
+                        return false;
+                    }
+                    int disp16 = binary[++i] | (binary[++i] << 8);
+                    secondArg += $" + 0x{disp16:X4}";
+                }
+
+
+                if (!(firstArg == "UNKNOWN" && secondArg == "UNKNOWN"))
+                {
+                    Console.WriteLine($"CS:{i}   {operation} {firstArg}, {secondArg}");
+                    //Console.WriteLine($"        MOD: {mod}, REG: {reg}, R/M: {rm}\n");
+                }
+            }
+
+
+            if (opcode >= 0xB0 && opcode <= 0xBF)
+            {
+                if (i + 1 >= binary.Count)
+                {
+                    Console.WriteLine("Missing immediate value");
+                    return false;
+                }
+                int imm = binary[++i];
+                firstArg = mod11.ContainsKey((byte)(0xC0 + (opcode & 0x07)))
+                        ? mod11[(byte)(0xC0 + (opcode & 0x07))]
+                        : "UNKNOWN";
+                secondArg = $"0x{imm:X2}";
+            }
+            else if (opcode == 0xC6 || opcode == 0xC7)
+            {
+                if (i + 1 >= binary.Count)
+                {
+                    Console.WriteLine("Missing immediate value");
+                    return false;
+                }
+                int imm = binary[++i];
+                secondArg += $" 0x{imm:X2}";
+            }
+            return true;
+        }
+
+
+
         static void matchCodes() {
             for (int i = 0; i < binary.Count; i++) {
                 byte opcode = (byte)binary[i];
@@ -177,101 +298,28 @@ namespace disasmmmm {
                     continue;
                 }
 
-                if (!instants.ContainsKey(opcode) && opcodes.ContainsKey(opcode)) {
-                    string operation = opcodes[opcode];
+                switch(!instants.ContainsKey(opcode) && opcodes.ContainsKey(opcode)) {
+                    case true:
+                        string operation = opcodes[opcode];
 
-                    if (operation == "MOV") {
-                        if (i + 1 >= binary.Count) {
-                            Console.WriteLine("Incomplete MOD-REG-R/M byte for MOV");
-                            break;
-                        }
+                        if (operation == "MOV" && i + 1 < binary.Count)
+                            isMov(opcode, i, operation);
+                        break;
 
-                        int modrm = binary[++i];
-                        int mod = getMod(modrm);
-                        int reg = getReg(modrm);
-                        int rm = getRM(modrm);
-
-                        string firstArg = mod11.ContainsKey((byte)(0xC0 + reg)) ? mod11[(byte)(0xC0 + reg)] : $"UNKNOWN (REG: {reg})";
-                        string secondArg = "";
-
-                        if (mod == 0x11) {
-                            secondArg = mod11.ContainsKey((byte)rm) ? mod11[(byte)rm] : $"UNKNOWN (R/M: {rm})";
-                        } else if (mod == 0x00 && rm == 0x06) {
-                            if (i + 2 >= binary.Count) {
-                                Console.WriteLine("Missing 16-bit displacement for memory address");
-                                break;
-                            }
-
-                            int disp16 = binary[++i] | (binary[++i] << 8);
-
-                            if (mod11.ContainsKey((byte)(0xC0 + reg))) {
-                                firstArg = mod11[(byte)(0xC0 + reg)];
+                    default:
+                        if (instants.TryGetValue(opcode, out string value)) {
+                            if (instants.ContainsKey(opcode) && (opcode >= 0x70 && opcode <= 0x7F 
+                                || opcode == 0xEB || opcode == 0xE9 || opcode == 0xEA)) {
+                                int targetAddress = CalculateTargetAddress(binary, i, i);
+                                Console.WriteLine($"CS:{i}   {value} 0x{targetAddress:X4}");
                             } else {
-                                firstArg = $"UNKNOWN (REG: {reg})";
-                            }
-
-                            secondArg = $"[0x{disp16:X4}]";
-                        } else {
-                            var modTable = GetModTable(mod);
-                            if (modTable.ContainsKey((byte)rm)) {
-                                secondArg = modTable[(byte)rm];
-                            } else {
-                                secondArg = $"UNKNOWN (R/M: {rm})";
-                            }
-
-                            if (mod == 0x01) {
-                                if (i + 1 >= binary.Count) {
-                                    Console.WriteLine("Missing 8-bit displacement");
-                                    break;
-                                }
-                                int disp8 = binary[++i];
-                                secondArg += $" + 0x{disp8:X2}";
-                            } else if (mod == 0x10) {
-                                if (i + 2 >= binary.Count) {
-                                    Console.WriteLine("Missing 16-bit displacement");
-                                    break;
-                                }
-                                int disp16 = binary[++i] | (binary[++i] << 8);
-                                secondArg += $" + 0x{disp16:X4}";
+                                Console.WriteLine($"CS:{i}   {value}");
                             }
                         }
 
-
-                        if (opcode >= 0xB0 && opcode <= 0xBF) {
-                            if (i + 1 >= binary.Count) {
-                                Console.WriteLine("Missing immediate value");
-                                break;
-                            }
-                            int imm = binary[++i];
-                            firstArg = mod11.ContainsKey((byte)(0xC0 + (opcode & 0x07)))
-                                    ? mod11[(byte)(0xC0 + (opcode & 0x07))]
-                                    : "UNKNOWN";
-                            secondArg = $"0x{imm:X2}";
-                        } else if (opcode == 0xC6 || opcode == 0xC7) {
-                            if (i + 1 >= binary.Count) {
-                                Console.WriteLine("Missing immediate value");
-                                break;
-                            }
-                            int imm = binary[++i];
-                            secondArg += $" 0x{imm:X2}";
-                        }
-
-                        if (!(firstArg == "UNKNOWN" && secondArg == "UNKNOWN")) {
-                            Console.WriteLine($"CS:{i}   {operation} {firstArg}, {secondArg}");
-                            //Console.WriteLine($"        MOD: {mod}, REG: {reg}, R/M: {rm}\n");
-                        }
-                    }
-                } else {
-                    
-                    if (instants.TryGetValue(opcode, out string value)) {
-                        if (instants.ContainsKey(opcode) && (opcode >= 0x70 && opcode <= 0x7F || opcode == 0xEB || opcode == 0xE9 || opcode == 0xEA)) {
-                            int targetAddress = CalculateTargetAddress(binary, i, i);
-                            Console.WriteLine($"CS:{i}   {value} 0x{targetAddress:X4}");
-                        } else {
-                            Console.WriteLine($"CS:{i}   {value}");
-                        }
-                    }
+                        break;
                 }
+
             }
         }
 
